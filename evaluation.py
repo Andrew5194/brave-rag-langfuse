@@ -33,7 +33,7 @@ from pipelines import baseline_pipeline, diy_rag_pipeline, brave_search_api_pipe
 JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "claude-opus-4-7")
 
 _langfuse = get_client()
-_claude = anthropic.Anthropic()
+_claude = anthropic.Anthropic(max_retries=6)  # ride out transient 529 overloaded_error with backoff
 
 
 # ---------------------------------------------------------------------------

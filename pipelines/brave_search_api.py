@@ -18,7 +18,7 @@ BRAVE_API_KEY = os.environ["BRAVE_API_KEY"]
 BRAVE_LLM_CONTEXT_URL = "https://api.search.brave.com/res/v1/llm/context"
 ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-7")
 
-_claude = anthropic.Anthropic()
+_claude = anthropic.Anthropic(max_retries=6)  # ride out transient 529 overloaded_error with backoff
 
 
 # Citation contract: also imported by diy_rag.py so both retrieval pipelines

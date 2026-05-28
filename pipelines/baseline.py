@@ -11,7 +11,7 @@ import anthropic
 
 ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-7")
 
-_claude = anthropic.Anthropic()
+_claude = anthropic.Anthropic(max_retries=6)  # ride out transient 529 overloaded_error with backoff
 
 BASELINE_SYSTEM = (
     "You are a financial research assistant. Answer the user's question "

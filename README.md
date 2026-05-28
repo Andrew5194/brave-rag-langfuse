@@ -106,7 +106,7 @@ docker compose up -d                 # langfuse-web + worker, Postgres, ClickHou
 
 First boot takes ~2–3 minutes (watch with `docker compose logs -f langfuse-web` until it logs `Ready`). On that first boot the compose file auto-creates an org, a project, an admin user, **and a fixed API key pair** — so you don't click through any setup. Just point the demo at it with the seeded keys (see below).
 
-To browse traces in the UI, open **http://localhost:3005** and log in with `admin@example.com` / `langfuse-local`.
+To browse traces in the UI, open **http://localhost:3005** and log in with `admin@admin.com` / `password`.
 
 > The compose file ships with local-dev credentials (marked `# CHANGEME`, including the seeded keys/login) and binds everything except the web UI to `127.0.0.1`. Fine for local use — change them before exposing this stack anywhere. Stop it with `docker compose down` (add `-v` to also wipe stored traces; note the seed only runs against a fresh database).
 

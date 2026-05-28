@@ -49,7 +49,7 @@ BRAVE_WEB_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-7")
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
-_claude = anthropic.Anthropic()
+_claude = anthropic.Anthropic(max_retries=6)  # ride out transient 529 overloaded_error with backoff
 
 # Lazy-load the embedder (~80MB download on first run, a few seconds to load)
 _embedder: SentenceTransformer | None = None

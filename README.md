@@ -10,7 +10,7 @@ A LangFuse-instrumented comparison of three pipelines answering the same finance
 
 Three evaluators score every output:
 - `citation_rate` (0–1) — LLM-as-judge
-- `factuality` (1–5) — LLM-as-judge
+- `factuality` (1–5) — LLM-as-judge: are the answer's claims grounded in the cited sources?
 - `latency_ms` — measured during execution
 
 ## 2-minute live demo
@@ -29,7 +29,7 @@ T+0:00–0:30   Cells 1–7: intro + setup + show pipeline files
               → audience sees the file sizes contrast immediately
 
 T+0:30–1:00   Cells 8–13: single question, three pipelines in parallel
-              → ~25s wall-clock, visible latency gap
+              → ~15s wall-clock, visible latency gap
               → audience reads the actual answers side-by-side
 
 T+1:00–1:45   Cells 14–25: dataset upload, experiments, LangFuse link
@@ -38,6 +38,8 @@ T+1:00–1:45   Cells 14–25: dataset upload, experiments, LangFuse link
 T+1:45–2:00   Cells 26–30: code contrast + takeaways
               → diy_rag vs brave-search-api source side-by-side via inspect.getsource()
 ```
+
+> **Timing note:** the T+ markers above assume a fast answer/judge model (e.g. `claude-haiku-4-5`) and/or pre-running the experiment cells. On the default `claude-opus-4-7`, the three experiment cells alone take ~3 minutes, so for a true sub-2-minute *live* run, pre-run the experiments and spend stage time in the LangFuse Compare view.
 
 The notebook also works as a self-paced exploration — collaborators can clone the repo, set the env vars, and walk through it themselves.
 
@@ -70,8 +72,10 @@ Concretely:
 | External services | 1 (Brave Web Search) + local embedder + local vector store | 1 (Brave LLM Context) |
 | Python deps | `requests`, `trafilatura`, `sentence-transformers`, `faiss-cpu`, `numpy` | `requests` |
 | First-run setup | API key + ~80MB model download | API key |
-| Expected p50 latency | ~5–10s | ~1–2s |
+| End-to-end latency (opus-4-7) | ~12s | ~7s |
 | Failure modes | Brave is down, page fetches fail, extraction fails, embedding fails, FAISS errors, chunking edge cases | Brave is down |
+
+Both latencies are dominated by Claude generation (shared between the two); the gap is the retrieval overhead the DIY stack adds on top — roughly 1.8× the end-to-end time in our run.
 
 A production DIY setup would add managed vector DB (Pinecone/Weaviate), hosted embeddings (OpenAI/Voyage), and a reranker (Cohere). Each of those is more code, more services, more cost, more failure modes.
 

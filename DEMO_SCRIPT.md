@@ -2,17 +2,20 @@
 
 The primary demo surface is `walkthrough.ipynb`. This script gives you what to say at each cell. Time markers assume you start running cells from the top.
 
+> **Timing & model note:** the scores and latencies below are from a real run on `claude-opus-4-7`. On Opus the three experiment cells take roughly 45s / 85s / 55s (≈3 minutes total), so a genuine sub-2-minute *live* run isn't realistic if you execute them on stage. For a tight live demo, either (a) run the three experiments just before going live and spend stage time in the LangFuse Compare view, or (b) set `ANSWER_MODEL`/`JUDGE_MODEL` to a faster model (e.g. `claude-haiku-4-5`) for the live run.
+
 ## Pre-flight (30 seconds before going live)
 
+- [ ] Local LangFuse up: `docker compose up -d` (wait until `langfuse-web` logs `Ready`)
 - [ ] `walkthrough.ipynb` open in JupyterLab, kernel active, env vars loaded
 - [ ] Notebook scrolled to the top, all previous outputs cleared (Kernel → Restart & Clear Outputs)
 - [ ] One smoke-test run already done today (so the embedder is cached locally)
-- [ ] Browser tab 1: LangFuse → Datasets → `brave-finance-eval` → Runs view, signed in
+- [ ] Browser tab 1: http://localhost:3005 → Datasets → `brave-finance-eval` → Runs view, logged in (`admin@example.com` / `langfuse-local`)
 - [ ] Phone or stopwatch ready
 
 ## Opening line (before running the first cell)
 
-> "I'm going to compare three ways of answering finance questions about recent events: just an LLM, that same LLM grounded with Brave's Search API, and a DIY RAG pipeline I built from scratch. LangFuse scores all three. The whole thing is a Jupyter notebook so you can see exactly what's happening at each step."
+> "I'm going to compare three ways of answering finance questions about recent events: just an LLM, a DIY RAG pipeline I built from scratch, and the same LLM backed by the Brave Search API. LangFuse scores all three. The whole thing is a Jupyter notebook so you can see exactly what's happening at each step."
 
 Run Cell 1 (the title markdown) — audience reads it while you talk.
 
@@ -30,11 +33,11 @@ Run cells 3 and 4 — they should complete in under a second each.
 
 This is your first hero moment. Run cell 7 (the line counts).
 
-> "Three pipelines, same input/output contract. Baseline is the LLM with no retrieval. Grounded uses Brave's LLM Context endpoint and adds a citation prompt. DIY RAG is a manual implementation: search, fetch, extract, chunk, embed, index, retrieve, generate."
+> "Three pipelines, same input/output contract. Baseline is the LLM with no retrieval. DIY RAG is a manual implementation: search, fetch, extract, chunk, embed, index, retrieve, generate. Brave Search API uses the LLM Context endpoint and adds a citation prompt."
 
 Point at the line counts as they print:
 
-> "Thirty-two lines, a hundred-ten lines, two hundred-eighty lines. That number ratio is the whole story before we even run anything."
+> "Thirty lines, two hundred-eighty lines, a hundred-ten lines. Baseline's tiny but useless; DIY is the big one; Brave does the same job in a hundred-ten. That ratio is the whole story before we even run anything."
 
 ### Cells 8–10 (demo question + pre-warm)
 
@@ -50,13 +53,13 @@ This is the live moment. Run cell 11.
 
 As outputs appear:
 
-> "Baseline came back in two seconds. Grounded in four. DIY took fifteen because of all those sequential steps."
+> "Baseline came back first — it's just one model call. Brave Search API a few seconds later. DIY last and well behind, because of all those sequential steps."
 
 ### Cell 12 (display answers)
 
 Run cell 12. Three answer blocks appear.
 
-> "Read these top-to-bottom. Baseline is hedged, vague, no specifics. Grounded has inline citation markers like `[1]` and `[2]`. DIY also has citations but the chunking is messier."
+> "Read these top-to-bottom. Baseline is hedged, vague, no specifics. DIY RAG has citations but the chunking is messier. Brave Search API has clean inline citation markers like `[1]` and `[2]`."
 
 ### Cell 13 (markdown observations)
 
@@ -66,7 +69,7 @@ Pause to let the audience read it. ~5 seconds.
 
 ---
 
-## Phase 2 — Eval setup and LangFuse experiments (cells 14–25, ~60s)
+## Phase 2 — Eval setup and LangFuse experiments (cells 14–25; ~3 min if you live-run the experiments on Opus — see the timing note up top)
 
 ### Cells 14–15 (dataset upload)
 
@@ -90,17 +93,17 @@ Run cell 20.
 
 > "Loading the dataset from LangFuse. Now three experiments — one per pipeline."
 
-Run cell 21 (baseline). It finishes in ~8 seconds.
+Run cell 21 (baseline). On Opus it takes ~45 seconds.
 
-> "Baseline experiment: five questions, all in parallel, generation plus two judges per item. Eight seconds total."
+> "Baseline experiment: five questions in parallel, a generation plus two judges per item."
 
-Run cell 22 (grounded). Finishes in ~10 seconds.
+Run cell 22 (DIY). The longest — ~85 seconds.
 
-> "Grounded experiment. Slightly slower because of the Brave API call, but still fast."
+> "DIY experiment. This is the long one — eight pipeline steps per question, on top of the same generation and judges. Notice the wall-clock difference."
 
-Run cell 23 (DIY). Finishes in ~20-25 seconds.
+Run cell 23 (brave-search-api). ~55 seconds.
 
-> "DIY experiment. This is the long one — eight pipeline steps per question. Notice the wall-clock difference."
+> "And the Brave Search API experiment. One call to Brave's LLM Context endpoint per question — still faster than the entire DIY stack, and we'll see the scores hold up too."
 
 ### Cells 24–25 (LangFuse link)
 
@@ -112,15 +115,15 @@ Run cell 25. The URL prints.
 
 Point at the aggregate row:
 
-> "Citation rate: baseline near zero, grounded near ninety percent, DIY around seventy. Factuality: baseline around two, grounded four-plus, DIY around three-and-a-half. Latency: grounded around three seconds, DIY around fifteen."
+> "Citation rate: baseline zero, DIY around ninety percent, Brave Search API ninety-four. Factuality, one to five: baseline scores one — it's ungrounded, nothing to verify against; DIY four-point-eight; Brave a clean five. Latency: Brave about seven seconds versus DIY's twelve-and-a-half — so Brave isn't just better grounded, it's nearly twice as fast as the hand-rolled stack."
 
 Click into one trace (Nvidia earnings or whichever has the most dramatic split):
 
-> "Here's the full chain for the grounded run — Brave call, chunks returned, LLM call with the citation prompt, final output. Now compare to the baseline trace — same question, generic answer, no sources."
+> "Here's the full chain for the brave-search-api run — Brave call, chunks returned, LLM call with the citation prompt, final output. Now compare to the baseline trace — same question, generic answer, no sources."
 
 (Optional, 5s) The refusal test row:
 
-> "And the forward-looking question — the model literally can't know — baseline speculates, grounded refuses cleanly. Citation enforcement gives you refusal behavior almost for free."
+> "And the forward-looking question — the model literally can't know — baseline speculates, Brave Search API refuses cleanly. Citation enforcement gives you refusal behavior almost for free."
 
 ---
 
@@ -132,19 +135,19 @@ Click into one trace (Nvidia earnings or whichever has the most dramatic split):
 
 Run cell 27.
 
-> "Here's the dependency declaration from pyproject.toml. The shared section is three packages — anthropic, langfuse, httpx. The DIY-only section adds four heavy libraries: trafilatura for extraction, sentence-transformers for embeddings, FAISS for the vector store, numpy. Every one of those is more code to write, more to maintain, more to fail."
+> "Here's the dependency declaration from pyproject.toml. The shared section is three packages — anthropic, langfuse, requests. The DIY-only section adds four heavy libraries: trafilatura for extraction, sentence-transformers for embeddings, FAISS for the vector store, numpy. Every one of those is more code to write, more to maintain, more to fail."
 
-### Cell 28 (grounded source via inspect)
+### Cell 28 (DIY source via inspect)
 
-Run cell 28. The grounded_pipeline source prints inline.
+Run cell 28. The much longer source prints.
 
-> "This is the entire grounded pipeline. Roughly thirty lines. One call to Brave, one call to Claude. That's it."
+> "This is the DIY pipeline. Eight numbered steps. Search, fetch concurrently, extract main content, chunk by paragraph, embed locally, build a FAISS index, retrieve top-k, generate. Two hundred-eighty lines. Same final answer contract. Slightly lower scores and nearly double the latency in the eval we just ran. More to maintain forever."
 
-### Cell 29 (DIY source via inspect)
+### Cell 29 (brave-search-api source via inspect)
 
-Run cell 29. The much longer source prints.
+Run cell 29. The much shorter source prints.
 
-> "And this is the DIY pipeline. Eight numbered steps. Search, fetch concurrently, extract main content, chunk by paragraph, embed locally, build a FAISS index, retrieve top-k, generate. Two hundred-eighty lines. Same final answer contract. Worse scores in the eval we just ran. More to maintain forever."
+> "And this is the entire brave-search-api pipeline. Roughly thirty lines. One call to Brave, one call to Claude. That's it — everything the DIY stack did, collapsed into a single endpoint."
 
 ### Cell 30 (takeaways markdown)
 

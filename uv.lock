@@ -214,11 +214,11 @@ source = { virtual = "." }
 dependencies = [
     { name = "anthropic" },
     { name = "faiss-cpu" },
-    { name = "httpx" },
     { name = "jupyterlab" },
     { name = "langfuse" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "requests" },
     { name = "sentence-transformers" },
     { name = "trafilatura" },
 ]
@@ -227,10 +227,10 @@ dependencies = [
 requires-dist = [
     { name = "anthropic", specifier = ">=0.40.0" },
     { name = "faiss-cpu", specifier = ">=1.8.0" },
-    { name = "httpx", specifier = ">=0.27.0" },
     { name = "jupyterlab", specifier = ">=4.0.0" },
     { name = "langfuse", specifier = ">=4.0.0" },
     { name = "numpy", specifier = ">=1.26.0" },
+    { name = "requests", specifier = ">=2.32.0" },
     { name = "sentence-transformers", specifier = ">=2.7.0" },
     { name = "trafilatura", specifier = ">=1.12.0" },
 ]

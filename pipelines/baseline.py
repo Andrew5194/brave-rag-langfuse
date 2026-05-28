@@ -6,12 +6,10 @@ no citations, no grounding. Whatever the model knows from training.
 """
 
 from __future__ import annotations
-
 import os
-
 import anthropic
 
-ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-5")
+ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-7")
 
 _claude = anthropic.Anthropic()
 

@@ -1,5 +1,5 @@
 """
-Grounded pipeline — Brave LLM Context endpoint -> LLM with citation enforcement.
+Brave Search API pipeline — Brave LLM Context endpoint -> LLM with citation enforcement.
 
 Two API calls total:
   1. Brave LLM Context  (handles search + fetch + extract + chunk + rank)
@@ -10,23 +10,21 @@ calls replace.
 """
 
 from __future__ import annotations
-
 import os
-
 import anthropic
-import httpx
+import requests
 
 BRAVE_API_KEY = os.environ["BRAVE_API_KEY"]
 BRAVE_LLM_CONTEXT_URL = "https://api.search.brave.com/res/v1/llm/context"
-ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-5")
+ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-7")
 
 _claude = anthropic.Anthropic()
 
 
-# Citation contract: also imported by diy_rag.py so both grounded pipelines
+# Citation contract: also imported by diy_rag.py so both retrieval pipelines
 # produce answers under the same rules. The only thing that varies is HOW
 # the sources got retrieved.
-GROUNDED_SYSTEM = """You are a financial research assistant. Answer the user's question using ONLY the sources provided below.
+CITATION_SYSTEM = """You are a financial research assistant. Answer the user's question using ONLY the sources provided below.
 
 STRICT RULES:
 - Every factual claim (numbers, dates, names, events, decisions) MUST be followed by a citation marker like [1], [2], etc., matching the source numbers below.
@@ -46,7 +44,7 @@ def fetch_brave_context(query: str, freshness: str = "pm") -> list[dict]:
 
     freshness: 'pd' past day, 'pw' past week, 'pm' past month, 'py' past year.
     """
-    resp = httpx.get(
+    resp = requests.get(
         BRAVE_LLM_CONTEXT_URL,
         headers={
             "X-Subscription-Token": BRAVE_API_KEY,
@@ -56,7 +54,7 @@ def fetch_brave_context(query: str, freshness: str = "pm") -> list[dict]:
         params={
             "q": query,
             "count": 10,
-            "maximum_number_of_tokens": 4096,
+            "maximum_number_of_tokens": 8192,
             "freshness": freshness,
             "context_threshold_mode": "strict",  # precision over recall
         },
@@ -86,7 +84,7 @@ def format_sources(chunks: list[dict]) -> str:
     )
 
 
-def grounded_pipeline(question: str) -> dict:
+def brave_search_api_pipeline(question: str) -> dict:
     """Brave LLM Context -> LLM with citation enforcement."""
     chunks = fetch_brave_context(question)
     if not chunks:
@@ -96,7 +94,8 @@ def grounded_pipeline(question: str) -> dict:
             "chunks_returned": 0,
         }
 
-    system_prompt = GROUNDED_SYSTEM.format(sources=format_sources(chunks))
+    sources_text = format_sources(chunks)
+    system_prompt = CITATION_SYSTEM.format(sources=sources_text)
     msg = _claude.messages.create(
         model=ANSWER_MODEL,
         max_tokens=600,
@@ -106,5 +105,6 @@ def grounded_pipeline(question: str) -> dict:
     return {
         "answer": msg.content[0].text,
         "sources": [{"n": c["n"], "url": c["url"], "title": c["title"]} for c in chunks],
+        "sources_text": sources_text,
         "chunks_returned": len(chunks),
     }

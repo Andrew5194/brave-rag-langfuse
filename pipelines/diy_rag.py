@@ -7,13 +7,13 @@ Steps the Brave LLM Context endpoint handles in a single API call,
 done manually here:
 
   1. Search           -> Brave Web Search API (just for URL discovery)
-  2. Fetch            -> httpx with timeouts, redirects, UA header
+  2. Fetch            -> requests with timeouts, redirects, UA header
   3. Extract          -> trafilatura (main-content extraction)
   4. Chunk            -> simple paragraph-aware chunker
   5. Embed            -> sentence-transformers (all-MiniLM-L6-v2, local)
   6. Index            -> FAISS in-memory IndexFlatIP
   7. Retrieve         -> top-k cosine similarity
-  8. Generate         -> Claude with citation-forcing prompt (same as grounded)
+  8. Generate         -> Claude with citation-forcing prompt (same as brave_search_api)
 
 This is the *minimum* viable DIY pipeline. A production setup would add:
 managed vector DB (Pinecone/Weaviate), hosted embeddings (OpenAI/Voyage),
@@ -29,15 +29,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import anthropic
 import faiss
-import httpx
 import numpy as np
+import requests
 import trafilatura
 from sentence_transformers import SentenceTransformer
 
-# Same citation contract as the Brave-grounded pipeline. The whole point of
+# Same citation contract as the brave_search_api pipeline. The whole point of
 # this file is to swap out everything BEFORE the LLM call — the answer
 # format stays identical so eval is apples-to-apples.
-from .grounded import GROUNDED_SYSTEM
+from .brave_search_api import CITATION_SYSTEM
 
 # ---------------------------------------------------------------------------
 # Config (mirrors compare.py so this file is self-contained)
@@ -46,7 +46,7 @@ from .grounded import GROUNDED_SYSTEM
 BRAVE_API_KEY = os.environ["BRAVE_API_KEY"]
 BRAVE_WEB_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 
-ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-5")
+ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-7")
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 _claude = anthropic.Anthropic()
@@ -70,7 +70,7 @@ def brave_web_search(query: str, count: int = 10, freshness: str = "pm") -> list
     """Brave Web Search — used here ONLY for URL discovery (no content extraction).
     This keeps the comparison apples-to-apples with LLM Context, which starts
     from the same search index."""
-    r = httpx.get(
+    r = requests.get(
         BRAVE_WEB_SEARCH_URL,
         headers={
             "X-Subscription-Token": BRAVE_API_KEY,
@@ -104,7 +104,7 @@ def fetch_and_extract(url: str, timeout: int = 10) -> str | None:
     """Fetch a URL and extract main content. Returns None on any failure
     (so one bad page doesn't kill the pipeline)."""
     try:
-        r = httpx.get(url, timeout=timeout, follow_redirects=True, headers=_FETCH_HEADERS)
+        r = requests.get(url, timeout=timeout, headers=_FETCH_HEADERS, allow_redirects=True)
         r.raise_for_status()
         if "text/html" not in r.headers.get("content-type", ""):
             return None
@@ -192,7 +192,7 @@ def retrieve_top_k(index: faiss.Index, query_vector: np.ndarray, k: int = 8) -> 
 
 
 # ---------------------------------------------------------------------------
-# Step 8: Generate (citation contract imported from grounded.py — see top of file)
+# Step 8: Generate (citation contract imported from brave_search_api.py — see top of file)
 # ---------------------------------------------------------------------------
 
 
@@ -250,7 +250,7 @@ def diy_rag_pipeline(question: str) -> dict:
     msg = _claude.messages.create(
         model=ANSWER_MODEL,
         max_tokens=600,
-        system=GROUNDED_SYSTEM.format(sources=sources_text),
+        system=CITATION_SYSTEM.format(sources=sources_text),
         messages=[{"role": "user", "content": question}],
     )
 
@@ -262,6 +262,7 @@ def diy_rag_pipeline(question: str) -> dict:
     return {
         "answer": msg.content[0].text,
         "sources": unique_sources,
+        "sources_text": sources_text,
         "pipeline_steps": {
             "search_results": len(search_results),
             "pages_fetched": len(extracted),

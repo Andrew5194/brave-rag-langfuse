@@ -1,7 +1,7 @@
 """
 Baseline pipeline — LLM only, no retrieval.
 
-This is the hallucination baseline. No external knowledge,
+This is the answer baseline. No external knowledge,
 no citations, no grounding. Whatever the model knows from training.
 """
 

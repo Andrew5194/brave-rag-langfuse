@@ -10,28 +10,28 @@ A LangFuse-instrumented comparison of three ways to answer finance questions abo
 
 It exists to show two things side by side:
 
-- **Quality** — does grounding (`brave-search-api`) reduce hallucinations versus the ungrounded `baseline`?
-- **Infrastructure** — how much code, latency, and dependency overhead does hand-rolling RAG (`diy_rag`) add over Brave's single LLM Context call?
+- **Quality** — does grounding (`brave-search-api`) reduce hallucinations or improve answer effectiveness versus the ungrounded `baseline`?
+- **Infrastructure** — how much code, latency, and dependency overhead does manual RAG (`diy_rag`) add over Brave's single LLM Context call?
 
 The whole demo lives in `walkthrough.ipynb`, scored by a self-hosted LangFuse.
 
 ## Getting started
 
 Prerequisites: 
-* [`uv`](https://docs.astral.sh/uv/)
-* Docker + Docker Compose
+* [uv](https://docs.astral.sh/uv/)
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 * A Brave Search API key with the **LLM Context** endpoint
 * An Anthropic API key
 
 Execute the following at the root of the repo to get started:
 
-```bash
+```sh
 make local
 ```
 
 Or if running the demo remotely, run the following:
 
-```bash
+```sh
 make remote
 ```
 
@@ -53,11 +53,13 @@ Run all cells. Traces and scores appear at **http://localhost:3005** (log in wit
 walkthrough.ipynb        # the demo — narration + code + outputs interleaved
 evaluation.py            # LLM-as-judge evaluators + pipeline task wrappers
 pipelines/
+    __init__.py          # exposes the three pipeline functions
     _llm.py              # shared Claude client, citation prompt, generate() helper
     baseline.py          # LLM only, no retrieval
     diy_rag.py           # manual RAG (the eight steps above)
     brave_search_api.py  # Brave LLM Context → LLM with citations
 docker-compose.yml       # self-hosted LangFuse (Postgres, ClickHouse, Redis, MinIO)
 Makefile                 # make local | remote | down | format
+coder-connect.sh         # network bridge for `make remote` (Coder workspaces)
 pyproject.toml           # dependencies (uv) + ruff config
 ```

@@ -21,15 +21,21 @@ Prerequisites:
 * [`uv`](https://docs.astral.sh/uv/)
 * Docker + Docker Compose
 * A Brave Search API key with the **LLM Context** endpoint
-* An Anthropic API key.
+* An Anthropic API key
 
-Execute the following to get started:
+Execute the following at the root of the repo to get started:
 
 ```bash
 make local
 ```
 
-Open `walkthrough.ipynb` and set your Brave Search API key and Anthropic API key. The `LANGFUSE` values are what the compose file seeds on first boot, just use the defaults:
+Or if running the demo remotely, run the following:
+
+```bash
+make remote
+```
+
+Open `walkthrough.ipynb` and set your Brave Search API key and Anthropic API key. The `LANGFUSE` values are what the docker compose file seeds on first boot, so just use the defaults:
 
 ```bash
 export BRAVE_API_KEY=...

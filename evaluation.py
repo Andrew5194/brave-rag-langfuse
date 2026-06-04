@@ -23,12 +23,13 @@ import json
 import os
 import re
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import anthropic
-from langfuse import get_client, Evaluation
+from langfuse import Evaluation, get_client
 
-from pipelines import baseline_pipeline, diy_rag_pipeline, brave_search_api_pipeline
+from pipelines import baseline_pipeline, brave_search_api_pipeline, diy_rag_pipeline
 
 JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "claude-opus-4-7")
 
@@ -80,7 +81,9 @@ Respond with ONLY this JSON, no other text:
 # Evaluators
 # ---------------------------------------------------------------------------
 
+
 def _judge_call(prompt: str) -> dict:
+    """Send a judge prompt to the model and parse the JSON response."""
     msg = _claude.messages.create(
         model=JUDGE_MODEL,
         max_tokens=300,
@@ -145,6 +148,7 @@ EVALUATORS = [citation_rate_evaluator, factuality_evaluator, latency_evaluator]
 # ---------------------------------------------------------------------------
 # Task adapters: wrap each pipeline with latency tracking + trace metadata
 # ---------------------------------------------------------------------------
+
 
 def _question_from_item(item: Any) -> str:
     if isinstance(item.input, dict):

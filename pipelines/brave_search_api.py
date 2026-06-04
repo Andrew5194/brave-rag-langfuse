@@ -10,39 +10,28 @@ calls replace.
 """
 
 from __future__ import annotations
+
 import os
-import anthropic
+
 import requests
+
+from ._llm import CITATION_SYSTEM, format_sources, generate
 
 BRAVE_API_KEY = os.environ["BRAVE_API_KEY"]
 BRAVE_LLM_CONTEXT_URL = "https://api.search.brave.com/res/v1/llm/context"
-ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-7")
-
-_claude = anthropic.Anthropic(max_retries=6)  # ride out transient 529 overloaded_error with backoff
-
-
-# Citation contract: also imported by diy_rag.py so both retrieval pipelines
-# produce answers under the same rules. The only thing that varies is HOW
-# the sources got retrieved.
-CITATION_SYSTEM = """You are a financial research assistant. Answer the user's question using ONLY the sources provided below.
-
-STRICT RULES:
-- Every factual claim (numbers, dates, names, events, decisions) MUST be followed by a citation marker like [1], [2], etc., matching the source numbers below.
-- If the sources do not contain enough information to answer, respond exactly: "I cannot verify this from the provided sources."
-- Do not use prior knowledge that is not supported by the sources.
-- Keep the answer to 3-6 sentences.
-
-SOURCES:
-{sources}
-"""
 
 
 def fetch_brave_context(query: str, freshness: str = "pm") -> list[dict]:
-    """
-    Single API call. Brave handles search + fetch + extract + chunk + rank
+    """Single API call. Brave handles search + fetch + extract + chunk + rank
     and returns pre-extracted snippets ready for LLM consumption.
 
-    freshness: 'pd' past day, 'pw' past week, 'pm' past month, 'py' past year.
+    Args:
+        query: The search query to send to Brave.
+        freshness: Recency filter — ``pd`` past day, ``pw`` past week,
+            ``pm`` past month, ``py`` past year.
+
+    Returns:
+        List of chunk dicts with keys ``n``, ``url``, ``title``, ``snippet``.
     """
     resp = requests.get(
         BRAVE_LLM_CONTEXT_URL,
@@ -77,13 +66,6 @@ def fetch_brave_context(query: str, freshness: str = "pm") -> list[dict]:
     return chunks
 
 
-def format_sources(chunks: list[dict]) -> str:
-    return "\n\n".join(
-        f"[{c['n']}] {c['title']} ({c['url']})\n{c['snippet']}"
-        for c in chunks
-    )
-
-
 def brave_search_api_pipeline(question: str) -> dict:
     """Brave LLM Context -> LLM with citation enforcement."""
     chunks = fetch_brave_context(question)
@@ -95,15 +77,9 @@ def brave_search_api_pipeline(question: str) -> dict:
         }
 
     sources_text = format_sources(chunks)
-    system_prompt = CITATION_SYSTEM.format(sources=sources_text)
-    msg = _claude.messages.create(
-        model=ANSWER_MODEL,
-        max_tokens=600,
-        system=system_prompt,
-        messages=[{"role": "user", "content": question}],
-    )
+    answer = generate(CITATION_SYSTEM.format(sources=sources_text), question)
     return {
-        "answer": msg.content[0].text,
+        "answer": answer,
         "sources": [{"n": c["n"], "url": c["url"], "title": c["title"]} for c in chunks],
         "sources_text": sources_text,
         "chunks_returned": len(chunks),

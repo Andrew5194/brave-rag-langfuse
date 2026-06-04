@@ -17,3 +17,20 @@ dependencies = [
     # Notebook surface
     "jupyterlab>=4.0.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.15",
+]
+
+[tool.ruff]
+line-length = 100
+# Never walk local agent worktrees / scratch state under .claude/.
+extend-exclude = [".claude"]
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I import sorting, UP pyupgrade.
+select = ["E", "W", "F", "I", "UP"]
+# `ruff format` already enforces line length on code; the only E501 hits left
+# are tuned prompt/docstring strings, where hard-wrapping hurts readability.
+ignore = ["E501"]

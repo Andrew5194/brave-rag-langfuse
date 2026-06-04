@@ -6,12 +6,8 @@ no citations, no grounding. Whatever the model knows from training.
 """
 
 from __future__ import annotations
-import os
-import anthropic
 
-ANSWER_MODEL = os.environ.get("ANSWER_MODEL", "claude-opus-4-7")
-
-_claude = anthropic.Anthropic(max_retries=6)  # ride out transient 529 overloaded_error with backoff
+from ._llm import generate
 
 BASELINE_SYSTEM = (
     "You are a financial research assistant. Answer the user's question "
@@ -21,10 +17,4 @@ BASELINE_SYSTEM = (
 
 def baseline_pipeline(question: str) -> dict:
     """One LLM call. No tools, no retrieval, no citations."""
-    msg = _claude.messages.create(
-        model=ANSWER_MODEL,
-        max_tokens=600,
-        system=BASELINE_SYSTEM,
-        messages=[{"role": "user", "content": question}],
-    )
-    return {"answer": msg.content[0].text, "sources": []}
+    return {"answer": generate(BASELINE_SYSTEM, question), "sources": []}

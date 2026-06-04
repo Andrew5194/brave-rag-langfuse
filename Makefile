@@ -4,6 +4,7 @@
 #   make remote  Start the stack, open the Coder port forwarder, and bind
 #                Jupyter on 0.0.0.0 so it is reachable through the Coder proxy.
 #   make down    Stop the stack.
+#   make format  Format + sort imports with ruff.
 #
 # "remote" is for this Coder workspace, where the Langfuse services run as
 # sibling containers: coder-connect.sh attaches this workspace to their network
@@ -12,7 +13,7 @@
 
 NETWORK := brave-rag-langfuse_default
 
-.PHONY: local remote down
+.PHONY: local remote down format
 
 local:
 	docker compose up -d
@@ -27,3 +28,7 @@ down:
 	-pkill -x socat
 	-docker network disconnect $(NETWORK) "$$(grep '/containers/' /proc/self/mountinfo | grep -oE '[0-9a-f]{64}' | head -1)"
 	docker compose down
+
+format:
+	uv run ruff check --fix .
+	uv run ruff format .
